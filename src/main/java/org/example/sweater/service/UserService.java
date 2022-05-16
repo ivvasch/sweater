@@ -3,10 +3,12 @@ package org.example.sweater.service;
 import lombok.AllArgsConstructor;
 import org.example.sweater.domain.Role;
 import org.example.sweater.domain.User;
+import org.example.sweater.exception.LoginException;
 import org.example.sweater.repo.UserRepo;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -16,16 +18,22 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @Service
 public class UserService implements UserDetailsService {
+    private static final String CONFIRM_EMAIL_SUBJECT = "Please confirm your email address";
+
     private final UserRepo userRepo;
     private final MailSenderService mailSenderService;
-    private static final String CONFIRM_EMAIL_SUBJECT = "Please confirm your email address";
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public UserDetails loadUserByUsername(String userName) throws UsernameNotFoundException {
-        if (userName.isEmpty()) {
-            return new User();
+        if (userName == null || userName.isEmpty()) {
+            throw new LoginException("Please fill fields");
         }
-        return userRepo.findUserByUsername(userName);
+        User userByUsername = userRepo.findUserByUsername(userName);
+        if (userByUsername == null) {
+            throw new LoginException("User not found");
+        }
+        return userByUsername;
     }
 
     public boolean addUser(User user) {
@@ -37,6 +45,8 @@ public class UserService implements UserDetailsService {
         user.setRoleSet(Collections.singleton(Role.USER));
         String confirmEmailCode = UUID.randomUUID().toString();
         user.setActivationCode(confirmEmailCode);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+
         userRepo.save(user);
 
         sendMessage(user, confirmEmailCode);

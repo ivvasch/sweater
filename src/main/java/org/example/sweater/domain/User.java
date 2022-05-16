@@ -6,7 +6,10 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import javax.persistence.*;
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotBlank;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Set;
 
 @Getter
@@ -18,9 +21,13 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
 
+    @NotBlank(message = "Username couldn't be null")
     private String username;
     private boolean active;
+    @NotBlank(message = "Password couldn't be null")
     private String password;
+    @Email(message = "Email is not correct")
+    @NotBlank(message = "Email couldn't be null")
     private String email;
     private String activationCode;
 
@@ -29,6 +36,9 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Set<Role> roleSet;
 
+
+    @OneToMany(mappedBy ="author", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<Message> messages;
 
     public boolean isAdmin() {
         return roleSet.contains(Role.ADMIN);
@@ -63,4 +73,16 @@ public class User implements UserDetails {
         return active;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(id, user.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }
