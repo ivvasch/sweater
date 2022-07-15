@@ -6,6 +6,10 @@ import org.example.sweater.domain.User;
 import org.example.sweater.repo.MessageRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,7 +25,6 @@ import javax.validation.Valid;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 
@@ -46,14 +49,16 @@ public class MainController {
 
     @GetMapping("/main")
     public String main(@RequestParam(required = false, defaultValue = "") String filter,
-                       Model model) {
-        Iterable<Message> messages;
+                       Model model,
+                       @PageableDefault(sort = {"id"}, direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<Message> page;
         if (filter != null && !filter.isEmpty()) {
-            messages = messageRepo.findByTag(filter);
+            page = messageRepo.findByTag(filter, pageable);
         } else {
-            messages = messageRepo.findAll();
+            page = messageRepo.findAll(pageable);
         }
-        model.addAttribute("messages", messages);
+        model.addAttribute("url", "/");
+        model.addAttribute("page", page);
         model.addAttribute("filter", filter);
         return "main";
     }
@@ -63,7 +68,8 @@ public class MainController {
                       @Valid Message message,
                       BindingResult bindingResult,
                       Model model,
-                      @RequestParam("file") MultipartFile file) {
+                      @RequestParam("file") MultipartFile file,
+                      @PageableDefault(sort = {"id"}, direction = Sort.Direction.DESC) Pageable pageable) {
         message.setAuthor(user);
         if (bindingResult.hasErrors()) {
             Map<String, String> errorMap = ControllerUtil.getErrors(bindingResult);
@@ -72,12 +78,11 @@ public class MainController {
         } else {
             saveFile(message, file);
             messageRepo.save(message);
-            return "redirect:/main";
         }
-        Iterable<Message> messageRepoAll = messageRepo.findAll();
-        model.addAttribute("messages", messageRepoAll);
-
-        return "main";
+        Page<Message> messageRepoAll = messageRepo.findAll(pageable);
+        model.addAttribute("page", messageRepoAll);
+        model.addAttribute("url", "/" + user.getId());
+        return "redirect:/main";
     }
 
     private void saveFile(Message message, MultipartFile file) {
@@ -103,9 +108,15 @@ public class MainController {
             @AuthenticationPrincipal User currentUser,
             @PathVariable User user,
             Model model,
-            @RequestParam(required = false) Message message) {
-        Set<Message> messages = user.getMessages();
-        model.addAttribute("messages", messages);
+            @RequestParam(required = false) Message message,
+            @PageableDefault(sort = {"id"}, direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<Message> page = messageRepo.findAllByAuthor(user, pageable);
+        model.addAttribute("userChanel", user);
+        model.addAttribute("subscriptionCount", user.getSubscribtion().size());
+        model.addAttribute("subscribersCount", user.getSubscribers().size());
+        model.addAttribute("isSubscriber", user.getSubscribers().contains(user));
+        model.addAttribute("url", "/user-messages/" + user.getId());
+        model.addAttribute("page", page);
         model.addAttribute("message", message);
         model.addAttribute("isCurrentUser", currentUser.equals(user));
         return "userMessages";

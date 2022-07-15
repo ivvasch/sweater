@@ -31,7 +31,7 @@
             <#--                </label>-->
             <div>
                 <label for="formFile" class="form-label mb-3">Default file input example</label>
-                <input class="form-control" type="file" name="file" id="formFile">
+                <input class="form-control" type="file" name="file" id="formFile"/>
                 <input type="hidden" name="_csrf" value="${_csrf.token}"/>
                 <input type="hidden" name="id" value="<#if message??>${message.id}</#if>"/>
                 <p></p>

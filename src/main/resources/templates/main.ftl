@@ -6,7 +6,7 @@
             <div class="form-group">
                 <label class="mb-3">
                     <input class="form-control mb-3" type="text" name="filter" value="${filter?ifExists}"
-                           placeholder="Search by tag">
+                           placeholder="Search by tag"/>
                     <button type="submit" class="btn btn-primary">Search</button>
                 </label>
             </div>
